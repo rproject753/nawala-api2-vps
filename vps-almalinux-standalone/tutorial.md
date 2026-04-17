@@ -122,3 +122,19 @@ Jika **Komdigi** tidak terjangkau dari VPS, lihat `README.md` bagian **7** (vari
 - `https://github.com/rproject753/nawala-api2-vps/releases/download/domains-isp-cache/domains_isp.sha256`
 
 Repo **private** membutuhkan autentikasi untuk mengambil aset Release; panduan ini mengasumsikan repo **public**.
+
+---
+
+## Gagal: `curl: (22) ... 404` saat menjalankan `sync_domains_isp_from_github.sh`
+
+Artinya URL Release **tidak ada** atau **aset belum diunggah** (bukan salah VPS).
+
+1. Buka **https://github.com/rproject753/nawala-api2-vps/releases** — harus ada release / tag **`domains-isp-cache`**.
+2. Di release itu harus ada file **`domains_isp`** dan **`domains_isp.sha256`** (dibuat oleh workflow Actions).
+3. Jika belum ada: di **Actions** jalankan workflow **Komdigi domains_isp mirror** sekali sampai **hijau**, lalu cek lagi halaman Releases.
+4. Pastikan file `.github/workflows/komdigi-domains_isp.yml` sudah **ter-push** ke GitHub (push butuh scope **`workflow`**).
+5. Tes di browser atau dari VPS:  
+   `curl -sI "https://github.com/rproject753/nawala-api2-vps/releases/download/domains-isp-cache/domains_isp.sha256"`  
+   baris pertama harus `HTTP/2 200` (bukan 404).
+
+Versi skrip terbaru menampilkan pesan error yang menjelaskan URL yang gagal dan langkah perbaikan.

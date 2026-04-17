@@ -15,21 +15,38 @@ GITHUB_RELEASE_TAG="${GITHUB_RELEASE_TAG:-domains-isp-cache}"
 DEST="${APP_DIR}/cache/blocklist_files/domains_isp"
 STATE="${DEST}.applied.sha256"
 BASE="https://github.com/${GITHUB_REPO}/releases/download/${GITHUB_RELEASE_TAG}"
+CHECKSUM_URL="${BASE}/domains_isp.sha256"
 TMP="${DEST}.part"
 
 mkdir -p "$(dirname "${DEST}")"
 
-REMOTE_SHA_RAW="$(curl -sSfL --connect-timeout 25 --max-time 60 "${BASE}/domains_isp.sha256")"
-REMOTE_SHA="$(echo "$REMOTE_SHA_RAW" | awk '{print $1}' | head -1)"
-if [[ ! "$REMOTE_SHA" =~ ^[a-f0-9]{64}$ ]]; then
-  echo "ERROR: checksum remote tidak valid (pastikan Release + workflow sudah jalan)." >&2
-  echo "       Cek URL: ${BASE}/domains_isp.sha256" >&2
+TMP_SHA="$(mktemp)"
+trap 'rm -f "${TMP_SHA}"' EXIT
+
+HTTP_CODE="$(curl -sS -o "${TMP_SHA}" -w "%{http_code}" --connect-timeout 25 --max-time 60 "${CHECKSUM_URL}" || echo "000")"
+if [[ "${HTTP_CODE}" != "200" ]]; then
+  echo "ERROR: tidak bisa mengambil checksum (HTTP ${HTTP_CODE})." >&2
+  echo "       URL: ${CHECKSUM_URL}" >&2
+  echo "" >&2
+  echo "       Penyebab umum: Release dengan tag '${GITHUB_RELEASE_TAG}' belum ada, atau aset belum diunggah." >&2
+  echo "       Perbaikan:" >&2
+  echo "       1) Buka https://github.com/${GITHUB_REPO}/releases — pastikan ada release/tag '${GITHUB_RELEASE_TAG}'." >&2
+  echo "       2) Di tab Actions, jalankan workflow 'Komdigi domains_isp mirror' sampai sukses (unggah domains_isp + domains_isp.sha256)." >&2
+  echo "       3) Repo private: unduhan Release butuh token (panduan ini mengasumsikan repo public)." >&2
   exit 1
 fi
 
-if [[ -f "$STATE" ]] && [[ -f "$DEST" ]] && [[ -s "$DEST" ]]; then
-  LOCAL_APPLIED="$(tr -d ' \t\n\r' < "$STATE")"
-  if [[ "$LOCAL_APPLIED" == "$REMOTE_SHA" ]]; then
+REMOTE_SHA_RAW="$(cat "${TMP_SHA}")"
+REMOTE_SHA="$(echo "${REMOTE_SHA_RAW}" | awk '{print $1}' | head -1)"
+if [[ ! "${REMOTE_SHA}" =~ ^[a-f0-9]{64}$ ]]; then
+  echo "ERROR: isi checksum remote tidak valid (bukan sha256 64 hex)." >&2
+  echo "       URL: ${CHECKSUM_URL}" >&2
+  exit 1
+fi
+
+if [[ -f "${STATE}" ]] && [[ -f "${DEST}" ]] && [[ -s "${DEST}" ]]; then
+  LOCAL_APPLIED="$(tr -d ' \t\n\r' < "${STATE}")"
+  if [[ "${LOCAL_APPLIED}" == "${REMOTE_SHA}" ]]; then
     echo "$(date -Iseconds) domains_isp unchanged (sha256 sama), lewati unduhan."
     exit 0
   fi
@@ -41,14 +58,14 @@ curl -fL --retry 3 --connect-timeout 30 --max-time 0 \
 test -s "${TMP}"
 
 DL_SHA="$(sha256sum "${TMP}" | awk '{print $1}')"
-if [[ "$DL_SHA" != "$REMOTE_SHA" ]]; then
+if [[ "${DL_SHA}" != "${REMOTE_SHA}" ]]; then
   echo "ERROR: sha256 file tidak cocok (korup / tidak lengkap). remote=${REMOTE_SHA} got=${DL_SHA}" >&2
   rm -f "${TMP}"
   exit 1
 fi
 
 mv -f "${TMP}" "${DEST}"
-printf '%s\n' "$REMOTE_SHA" > "${STATE}"
+printf '%s\n' "${REMOTE_SHA}" > "${STATE}"
 
 rm -f "${APP_DIR}/cache/trustpositif_member_cache.ser" 2>/dev/null || true
 
