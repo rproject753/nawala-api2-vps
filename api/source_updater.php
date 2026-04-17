@@ -770,10 +770,8 @@ function nawala_updater_sync_trustpositif_isp_only(bool $forceFull = false): arr
  */
 function nawala_updater_sync_trustpositif(bool $forceFull = false): array {
   $domains = nawala_updater_sync_trustpositif_domains_only($forceFull);
-  if (!($domains['ok'] ?? false)) {
-    return $domains;
-  }
-
+  // Tetap lanjut unduh assets ISP (domains_isp, ipaddress_isp) walau `domains` gagal —
+  // itu URL/host sama tetapi urutan & lock terpisah; gabungkan error agar jelas.
   $isp = nawala_updater_sync_trustpositif_isp_only($forceFull);
 
   $noteParts = array_filter([
