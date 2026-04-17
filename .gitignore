@@ -1,0 +1,8 @@
+# Runtime cache and large downloaded blocklists
+cache/**
+!cache/.gitkeep
+!cache/blocklist_files/.gitkeep
+!cache/trustpositif/.gitkeep
+
+# Local archives/backups
+*.zip
