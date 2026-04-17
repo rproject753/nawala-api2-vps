@@ -270,7 +270,7 @@ const TRUSTPOSITIF_FILES_REFRESH_TTL_SECONDS = 86400; // 24 jam
  * Unduh blocklist / ABSPositif digerakkan oleh cron (`cron/update_sources.php`), bukan oleh API checker.
  */
 
-function download_url_to_file(string $url, string $destPath, int $timeoutSeconds = 120): bool {
+function download_url_to_file(string $url, string $destPath, int $timeoutSeconds = 120, bool $unboundedTransferWithSlowAbort = false): bool {
   $destDir = dirname($destPath);
   if (!is_dir($destDir)) {
     @mkdir($destDir, 0777, true);
@@ -281,16 +281,27 @@ function download_url_to_file(string $url, string $destPath, int $timeoutSeconds
 
   if (function_exists('curl_init')) {
     $ch = curl_init($url);
-    curl_setopt_array($ch, [
+    $opts = [
       CURLOPT_FILE => $fp,
       CURLOPT_FOLLOWLOCATION => true,
       CURLOPT_MAXREDIRS => 5,
-      CURLOPT_CONNECTTIMEOUT => min(10, $timeoutSeconds),
-      CURLOPT_TIMEOUT => $timeoutSeconds,
       CURLOPT_SSL_VERIFYPEER => false,
       CURLOPT_SSL_VERIFYHOST => false,
       CURLOPT_USERAGENT => 'NawalaAPI-Checker/1.0',
-    ]);
+    ];
+    if ($unboundedTransferWithSlowAbort) {
+      // Asset Komdigi bisa sangat besar; batasi koneksi awal, tanpa cap total waktu unduh.
+      // Abort bila throughput terlalu rendah terlalu lama (indikasi macet / jaringan putus).
+      $connect = min(60, max(10, $timeoutSeconds));
+      $opts[CURLOPT_CONNECTTIMEOUT] = $connect;
+      $opts[CURLOPT_TIMEOUT] = 0;
+      $opts[CURLOPT_LOW_SPEED_LIMIT] = 256;
+      $opts[CURLOPT_LOW_SPEED_TIME] = 900;
+    } else {
+      $opts[CURLOPT_CONNECTTIMEOUT] = min(10, $timeoutSeconds);
+      $opts[CURLOPT_TIMEOUT] = $timeoutSeconds;
+    }
+    curl_setopt_array($ch, $opts);
     $ok = curl_exec($ch);
     $errNo = curl_errno($ch);
     curl_close($ch);

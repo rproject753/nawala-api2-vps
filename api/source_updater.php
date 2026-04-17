@@ -412,7 +412,7 @@ function nawala_updater_sync_trustpositif_domains_only(bool $forceFull = false):
   $localOk = is_file(TRUSTPOSITIF_LOCAL_PATH) && (int)@filesize(TRUSTPOSITIF_LOCAL_PATH) > 0;
 
   $doDownload = static function () use ($url): bool {
-    return download_url_to_file($url, TRUSTPOSITIF_LOCAL_PATH, 600)
+    return download_url_to_file($url, TRUSTPOSITIF_LOCAL_PATH, 60, true)
       && is_file(TRUSTPOSITIF_LOCAL_PATH)
       && (int)@filesize(TRUSTPOSITIF_LOCAL_PATH) > 0;
   };
@@ -571,7 +571,7 @@ function nawala_updater_sync_trustpositif_isp_asset(
   int $now
 ): array {
   $doDownload = static function () use ($url, $path): bool {
-    return download_url_to_file($url, $path, 600)
+    return download_url_to_file($url, $path, 60, true)
       && is_file($path)
       && (int)@filesize($path) > 0;
   };
