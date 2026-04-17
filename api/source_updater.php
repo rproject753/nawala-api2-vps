@@ -722,8 +722,8 @@ function nawala_updater_sync_trustpositif_isp_only(bool $forceFull = false): arr
     }
 
     $pairs = [
-      [TRUSTPOSITIF_DOMAINS_ISP_URL, TRUSTPOSITIF_DOMAINS_ISP_LOCAL_PATH],
-      [TRUSTPOSITIF_IPADDRESS_ISP_URL, TRUSTPOSITIF_IPADDRESS_ISP_LOCAL_PATH],
+      [nawala_trustpositif_domains_isp_download_url(), TRUSTPOSITIF_DOMAINS_ISP_LOCAL_PATH],
+      [nawala_trustpositif_ipaddress_isp_download_url(), TRUSTPOSITIF_IPADDRESS_ISP_LOCAL_PATH],
     ];
 
     $anyRefreshed = false;

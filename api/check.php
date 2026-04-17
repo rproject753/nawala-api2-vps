@@ -267,6 +267,31 @@ const TRUSTPOSITIF_MEMBER_CACHE_TTL_SECONDS = 3600; // 1 jam
 const TRUSTPOSITIF_FILES_REFRESH_TTL_SECONDS = 86400; // 24 jam
 
 /**
+ * URL unduhan ISP (Komdigi) boleh dioverride lewat env bila VPS tidak reach host Komdigi
+ * tetapi masih reach mirror (mis. raw.githubusercontent.com).
+ *
+ * Contoh mirror komunitas (MIT): https://github.com/alsyundawy/TrustPositif
+ *   NAWALA_IPADDRESS_ISP_DOWNLOAD_URL=https://raw.githubusercontent.com/alsyundawy/TrustPositif/main/ipaddress_isp
+ * Untuk domains_isp mirror biasanya berbentuk .7z di repo itu — tidak langsung drop-in ke file teks resmi.
+ */
+function nawala_env_non_empty(string $name): ?string {
+  $v = getenv($name);
+  if (!is_string($v)) {
+    return null;
+  }
+  $v = trim($v);
+  return $v !== '' ? $v : null;
+}
+
+function nawala_trustpositif_domains_isp_download_url(): string {
+  return nawala_env_non_empty('NAWALA_DOMAINS_ISP_DOWNLOAD_URL') ?? TRUSTPOSITIF_DOMAINS_ISP_URL;
+}
+
+function nawala_trustpositif_ipaddress_isp_download_url(): string {
+  return nawala_env_non_empty('NAWALA_IPADDRESS_ISP_DOWNLOAD_URL') ?? TRUSTPOSITIF_IPADDRESS_ISP_URL;
+}
+
+/**
  * Unduh blocklist / ABSPositif digerakkan oleh cron (`cron/update_sources.php`), bukan oleh API checker.
  */
 

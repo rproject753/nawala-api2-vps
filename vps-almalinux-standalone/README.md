@@ -96,3 +96,15 @@ URL publik file (repo harus **public** atau VPS punya token untuk private releas
 `https://github.com/rproject753/nawala-api2-vps/releases/download/domains-isp-cache/domains_isp`
 
 **Catatan:** push file di `.github/workflows/` ke GitHub butuh token dengan scope **workflow** (atau unggah manual lewat UI).
+
+## 7) Mirror unduhan ISP lewat env (mis. repo [alsyundawy/TrustPositif](https://github.com/alsyundawy/TrustPositif))
+
+Kalau Komdigi timeout tetapi **raw.githubusercontent.com** masih jalan, set env sebelum `php cron/update_sources.php` atau di baris cron:
+
+```bash
+export NAWALA_IPADDRESS_ISP_DOWNLOAD_URL="https://raw.githubusercontent.com/alsyundawy/TrustPositif/main/ipaddress_isp"
+# opsional domains_isp hanya bila URL mengarah ke file teks yang kompatibel (bukan .7z):
+# export NAWALA_DOMAINS_ISP_DOWNLOAD_URL="https://..."
+```
+
+Repo alsyundawy menyediakan `domains_isp` terutama sebagai **`domains_isp.7z`** — format beda dari unduhan resmi teks; untuk itu perlu langkah unpack terpisah atau tetap pakai mirror/resmi teks.
