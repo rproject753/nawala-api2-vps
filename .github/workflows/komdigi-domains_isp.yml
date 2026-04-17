@@ -1,0 +1,47 @@
+# Unduh otomatis domains_isp dari Komdigi (runner GitHub, bukan VPS).
+# File bisa besar; disimpan sebagai Artifact (bukan commit ke repo) agar aman dari limit Git.
+#
+# Manual: tab Actions → workflow ini → Run workflow
+# Otomatis: jadwal di bawah (UTC).
+
+name: Komdigi domains_isp download
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 02:00 UTC tiap hari — sesuaikan jika perlu
+    - cron: "0 2 * * *"
+
+concurrency:
+  group: komdigi-domains-isp
+  cancel-in-progress: true
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Unduh domains_isp
+        env:
+          URL: https://trustpositif.komdigi.go.id/assets/db/domains_isp
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 5 --retry-delay 10 \
+            --connect-timeout 30 \
+            --max-time 0 \
+            --speed-limit 1024 --speed-time 600 \
+            -A "NawalaAPI-GitHubActions/1.0" \
+            -o domains_isp "$URL"
+          test -s domains_isp
+          ls -lh domains_isp
+          sha256sum domains_isp | tee domains_isp.sha256
+
+      - name: Unggah artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: domains_isp-komdigi
+          path: |
+            domains_isp
+            domains_isp.sha256
+          if-no-files-found: error
+          retention-days: 14
