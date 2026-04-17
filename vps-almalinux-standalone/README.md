@@ -75,27 +75,82 @@ cd C:\xampp\htdocs\nawala-api2\vps-almalinux-standalone
   -InstallDeps
 ```
 
-## 6) Mirror `domains_isp` lewat GitHub (VPS tidak perlu akses Komdigi)
+## 6) Mirror `domains_isp` lewat GitHub (panduan dari awal — Actions + VPS tiap 15 menit, unduh hanya jika berubah)
 
-Kalau VPS timeout ke Komdigi, pakai **GitHub Actions** (workflow `Komdigi domains_isp mirror`) yang tiap **15 menit** mengunduh dari Komdigi lalu mengunggah file ke **Release** dengan tag `domains-isp-cache`.
+**Ide:** runner **GitHub Actions** (bisa ke Komdigi) tiap **15 menit** memperbarui file di **GitHub Release** tetap (`domains-isp-cache`). VPS tiap **15 menit** hanya mengambil `domains_isp.sha256` kecil dulu; **kalau SHA256 sama dengan yang terakhir diterapkan di VPS, file besar tidak diunduh lagi.**
 
-Setelah workflow pernah sukses, di VPS jalankan tiap 15 menit (cron):
+### A) Di GitHub (sekali + otomatis)
+
+1. Pastikan repo `nawala-api2-vps` punya file workflow:  
+   `.github/workflows/komdigi-domains_isp.yml`  
+   (jadwal `*/15 * * * *` UTC, unggah `domains_isp` + `domains_isp.sha256` ke Release tag `domains-isp-cache`).
+2. **Settings → Actions → General** → izinkan Actions untuk repo ini.
+3. Push workflow ke `main` (token GitHub butuh scope **`workflow`** bila lewat CLI).
+4. Di tab **Actions**, jalankan workflow **Komdigi domains_isp mirror** sekali **Run workflow** sampai sukses (agar Release `domains-isp-cache` terbentuk dan ada aset).
+5. Cek di browser (repo **public** paling mudah):  
+   `https://github.com/rproject753/nawala-api2-vps/releases/expanded_assets/domains-isp-cache`  
+   harus ada **`domains_isp`** dan **`domains_isp.sha256`**.
+
+### B) Di VPS (Ubuntu, dari awal)
+
+1. Pasang cron + curl (biasanya sudah ada):
 
 ```bash
-chmod +x sync_domains_isp_from_github.sh
+sudo apt update
+sudo apt install -y curl cron
+sudo systemctl enable --now cron
 ```
 
-Contoh crontab:
+2. Clone / taruh project (sesuaikan path):
+
+```bash
+sudo mkdir -p /var/www
+sudo chown "$USER:$USER" /var/www
+cd /var/www
+git clone https://github.com/rproject753/nawala-api2-vps.git nawala-api2-vps
+```
+
+3. Siapkan folder cache:
+
+```bash
+mkdir -p /var/www/nawala-api2-vps/cache/blocklist_files
+```
+
+4. Jalankan skrip sekali manual (uji):
+
+```bash
+chmod +x /var/www/nawala-api2-vps/vps-almalinux-standalone/sync_domains_isp_from_github.sh
+APP_DIR=/var/www/nawala-api2-vps /var/www/nawala-api2-vps/vps-almalinux-standalone/sync_domains_isp_from_github.sh
+```
+
+Run kedua kalinya: harus muncul pesan **domains_isp unchanged** jika GitHub belum mengganti checksum.
+
+5. Pasang crontab tiap **15 menit**:
+
+```bash
+crontab -e
+```
+
+Tambahkan baris:
 
 ```cron
 */15 * * * * APP_DIR=/var/www/nawala-api2-vps /var/www/nawala-api2-vps/vps-almalinux-standalone/sync_domains_isp_from_github.sh >> /var/log/nawala-domains-isp-github.log 2>&1
 ```
 
-URL publik file (repo harus **public** atau VPS punya token untuk private release):
+6. Log (opsional):
 
-`https://github.com/rproject753/nawala-api2-vps/releases/download/domains-isp-cache/domains_isp`
+```bash
+sudo touch /var/log/nawala-domains-isp-github.log
+sudo chown "$USER:$USER" /var/log/nawala-domains-isp-github.log
+```
 
-**Catatan:** push file di `.github/workflows/` ke GitHub butuh token dengan scope **workflow** (atau unggah manual lewat UI).
+**File state di VPS:** `cache/blocklist_files/domains_isp.applied.sha256` — menyimpan SHA256 terakhir yang sudah diterapkan; jangan dihapus kecuali mau paksa unduh ulang nanti.
+
+**URL publik (repo public):**  
+`https://github.com/rproject753/nawala-api2-vps/releases/download/domains-isp-cache/domains_isp`  
+`https://github.com/rproject753/nawala-api2-vps/releases/download/domains-isp-cache/domains_isp.sha256`
+
+**Catatan:** push workflow ke GitHub butuh token dengan scope **`workflow`** (atau unggah file YAML lewat UI).
 
 ## 7) Mirror unduhan ISP lewat env (mis. repo [alsyundawy/TrustPositif](https://github.com/alsyundawy/TrustPositif))
 
