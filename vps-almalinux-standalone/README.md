@@ -50,6 +50,22 @@ Default jadwal `*/30 * * * *`. Bisa override:
 CRON_EXPR="*/15 * * * *" APP_DIR=/var/www/nawala-api2-vps ./install_cron.sh
 ```
 
+## 5a) Push ke GitHub sekali jalan (Windows)
+
+Setelah mengedit kode di folder dev (`nawala-api2`), jalankan dari PowerShell:
+
+```powershell
+cd C:\xampp\htdocs\nawala-api2\vps-almalinux-standalone
+.\publish-to-github.ps1 -Message "jelaskan perubahan"
+```
+
+Script ini menyalin `api`, `cron`, `vps-almalinux-standalone`, `.github`, `index.php`, `.gitignore` ke **clone repo** lalu `git commit` + `git push origin main`.
+
+- Default folder clone: `c:\xampp\htdocs\nawala-api2-vps-fullsync` — ubah dengan env `NAWALA_VPS_GIT_DIR` jika clone kamu di path lain.
+- Cek dulu tanpa commit: `.\publish-to-github.ps1 -WhatIf`
+- Hanya commit, tidak push: `.\publish-to-github.ps1 -NoPush -Message "..."`
+- Push butuh **Git** + login GitHub (HTTPS). Kalau ada **GitHub CLI** (`gh`), token akan dipakai otomatis.
+
 ## 5) Upload otomatis dari Windows (PowerShell)
 
 Sudah disediakan script `deploy_to_vps.ps1` agar upload + setup VPS bisa sekali jalan.

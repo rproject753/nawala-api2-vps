@@ -1,5 +1,7 @@
 # Tutorial: AlmaLinux bersih + sinkron `domains_isp` dari GitHub (tiap 15 menit)
 
+> **Update kode dari PC Windows:** gunakan `vps-almalinux-standalone/publish-to-github.ps1` (lihat `README.md` bagian **5a**) agar perubahan di folder dev langsung di-push ke GitHub tanpa menyalin manual ke folder clone.
+
 Panduan ini untuk **VPS AlmaLinux tanpa cPanel**, dengan pola:
 
 - **GitHub Actions** memperbarui mirror `domains_isp` di **GitHub Release** (tag `domains-isp-cache`) tiap **15 menit** (lihat `.github/workflows/komdigi-domains_isp.yml`).
