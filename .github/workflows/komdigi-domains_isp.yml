@@ -1,27 +1,31 @@
-# Unduh otomatis domains_isp dari Komdigi (runner GitHub, bukan VPS).
-# File bisa besar; disimpan sebagai Artifact (bukan commit ke repo) agar aman dari limit Git.
+# Tiap 15 menit: unduh domains_isp dari Komdigi di runner GitHub, lalu unggah ke
+# GitHub Release tetap (tag). VPS bisa ambil file lewat URL publik tanpa akses Komdigi.
 #
-# Manual: tab Actions → workflow ini → Run workflow
-# Otomatis: jadwal di bawah (UTC).
+# Persiapan sekali: setelah workflow pertama sukses, URL unduhan stabil:
+#   https://github.com/OWNER/REPO/releases/download/domains-isp-cache/domains_isp
+#
+# Manual: Actions → "Komdigi domains_isp mirror" → Run workflow
 
-name: Komdigi domains_isp download
+name: Komdigi domains_isp mirror
 
 on:
   workflow_dispatch:
   schedule:
-    # 02:00 UTC tiap hari — sesuaikan jika perlu
-    - cron: "0 2 * * *"
+    - cron: "*/15 * * * *"
+
+permissions:
+  contents: write
 
 concurrency:
-  group: komdigi-domains-isp
+  group: komdigi-domains-isp-mirror
   cancel-in-progress: true
 
 jobs:
-  download:
+  mirror:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - name: Unduh domains_isp
+      - name: Unduh dari Komdigi
         env:
           URL: https://trustpositif.komdigi.go.id/assets/db/domains_isp
         run: |
@@ -36,12 +40,15 @@ jobs:
           ls -lh domains_isp
           sha256sum domains_isp | tee domains_isp.sha256
 
-      - name: Unggah artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: domains_isp-komdigi
-          path: |
-            domains_isp
-            domains_isp.sha256
-          if-no-files-found: error
-          retention-days: 14
+      - name: Unggah ke Release (untuk curl di VPS)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          TAG=domains-isp-cache
+          if ! gh release view "$TAG" --json tagName -q .tagName 2>/dev/null; then
+            gh release create "$TAG" \
+              --title "Komdigi domains_isp mirror" \
+              --notes "File diperbarui otomatis dari Komdigi. Unduh: \`domains_isp\` (+ checksum)."
+          fi
+          gh release upload "$TAG" domains_isp domains_isp.sha256 --clobber

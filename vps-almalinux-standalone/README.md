@@ -74,3 +74,25 @@ cd C:\xampp\htdocs\nawala-api2\vps-almalinux-standalone
   -LogFile "/var/log/nawala-update.log" `
   -InstallDeps
 ```
+
+## 6) Mirror `domains_isp` lewat GitHub (VPS tidak perlu akses Komdigi)
+
+Kalau VPS timeout ke Komdigi, pakai **GitHub Actions** (workflow `Komdigi domains_isp mirror`) yang tiap **15 menit** mengunduh dari Komdigi lalu mengunggah file ke **Release** dengan tag `domains-isp-cache`.
+
+Setelah workflow pernah sukses, di VPS jalankan tiap 15 menit (cron):
+
+```bash
+chmod +x sync_domains_isp_from_github.sh
+```
+
+Contoh crontab:
+
+```cron
+*/15 * * * * APP_DIR=/var/www/nawala-api2-vps /var/www/nawala-api2-vps/vps-almalinux-standalone/sync_domains_isp_from_github.sh >> /var/log/nawala-domains-isp-github.log 2>&1
+```
+
+URL publik file (repo harus **public** atau VPS punya token untuk private release):
+
+`https://github.com/rproject753/nawala-api2-vps/releases/download/domains-isp-cache/domains_isp`
+
+**Catatan:** push file di `.github/workflows/` ke GitHub butuh token dengan scope **workflow** (atau unggah manual lewat UI).
