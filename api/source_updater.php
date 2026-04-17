@@ -571,6 +571,10 @@ function nawala_updater_sync_trustpositif_isp_asset(
   int $now
 ): array {
   $doDownload = static function () use ($url, $path): bool {
+    $pathPart = (string)(parse_url($url, PHP_URL_PATH) ?: '');
+    if ($path === TRUSTPOSITIF_DOMAINS_ISP_LOCAL_PATH && $pathPart !== '' && str_ends_with(strtolower($pathPart), '.7z')) {
+      return nawala_download_domains_isp_from_7z_url($url, $path);
+    }
     return download_url_to_file($url, $path, 60, true)
       && is_file($path)
       && (int)@filesize($path) > 0;

@@ -346,6 +346,107 @@ function download_url_to_file(string $url, string $destPath, int $timeoutSeconds
   return file_exists($destPath) && filesize($destPath) > 0;
 }
 
+function nawala_rrmdir(string $dir): void {
+  if (!is_dir($dir)) {
+    return;
+  }
+  $it = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS),
+    RecursiveIteratorIterator::CHILD_FIRST
+  );
+  foreach ($it as $f) {
+    $p = $f->getPathname();
+    $f->isDir() ? @rmdir($p) : @unlink($p);
+  }
+  @rmdir($dir);
+}
+
+/**
+ * Unduh domains_isp dari URL arsip .7z (mis. mirror komunitas), ekstrak ke path cache lokal.
+ * Butuh binary 7zz / 7z / 7za di PATH (Ubuntu: p7zip-full).
+ *
+ * @see https://github.com/alsyundawy/TrustPositif — berkas domains_isp.7z
+ */
+function nawala_download_domains_isp_from_7z_url(string $url, string $destPath): bool {
+  if (!function_exists('curl_init')) {
+    return false;
+  }
+  $pathPart = (string)(parse_url($url, PHP_URL_PATH) ?: '');
+  if ($pathPart === '' || !str_ends_with(strtolower($pathPart), '.7z')) {
+    return false;
+  }
+  $tmpBase = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'nawala-domains-isp-' . bin2hex(random_bytes(8));
+  if (!@mkdir($tmpBase, 0700, true) && !is_dir($tmpBase)) {
+    return false;
+  }
+  $arc = $tmpBase . DIRECTORY_SEPARATOR . 'archive.7z';
+  $extDir = $tmpBase . DIRECTORY_SEPARATOR . 'out';
+  try {
+    if (!download_url_to_file($url, $arc, 60, true) || !is_file($arc) || (int)@filesize($arc) < 1) {
+      return false;
+    }
+    $seven = null;
+    foreach (['7zz', '7z', '7za'] as $cmd) {
+      $probe = [];
+      $rc = 1;
+      @exec('command -v ' . escapeshellarg($cmd) . ' 2>/dev/null', $probe, $rc);
+      if ($rc === 0 && isset($probe[0]) && is_string($probe[0]) && $probe[0] !== '' && @is_executable(trim($probe[0]))) {
+        $seven = trim($probe[0]);
+        break;
+      }
+    }
+    if ($seven === null) {
+      return false;
+    }
+    if (!@mkdir($extDir, 0700, true) && !is_dir($extDir)) {
+      return false;
+    }
+    $oArg = '-o' . $extDir;
+    $cmdl = escapeshellarg($seven) . ' x -y ' . escapeshellarg($arc) . ' ' . escapeshellarg($oArg) . ' 2>&1';
+    $outLines = [];
+    $exitCode = 1;
+    @exec($cmdl, $outLines, $exitCode);
+    if ($exitCode !== 0) {
+      return false;
+    }
+    $picked = null;
+    $candidates = [];
+    $it = new RecursiveIteratorIterator(
+      new RecursiveDirectoryIterator($extDir, FilesystemIterator::SKIP_DOTS)
+    );
+    foreach ($it as $f) {
+      if (!$f->isFile()) {
+        continue;
+      }
+      $n = strtolower($f->getFilename());
+      if ($n === 'domains_isp' || $n === 'domains_isp.txt') {
+        $picked = $f->getPathname();
+        break;
+      }
+      $candidates[] = $f->getPathname();
+    }
+    if ($picked === null && $candidates !== []) {
+      usort($candidates, static function (string $a, string $b): int {
+        return (int)@filesize($b) <=> (int)@filesize($a);
+      });
+      $picked = $candidates[0];
+    }
+    if ($picked === null || !is_file($picked)) {
+      return false;
+    }
+    $destDir = dirname($destPath);
+    if (!is_dir($destDir)) {
+      @mkdir($destDir, 0777, true);
+    }
+    if (!@copy($picked, $destPath)) {
+      return false;
+    }
+    return is_file($destPath) && (int)@filesize($destPath) > 0;
+  } finally {
+    nawala_rrmdir($tmpBase);
+  }
+}
+
 /**
  * Hanya cek apakah cache blocklist Skiddle ada di disk.
  * Unduh/pembaruan: jalankan `cron/update_sources.php`.

@@ -103,8 +103,13 @@ Kalau Komdigi timeout tetapi **raw.githubusercontent.com** masih jalan, set env 
 
 ```bash
 export NAWALA_IPADDRESS_ISP_DOWNLOAD_URL="https://raw.githubusercontent.com/alsyundawy/TrustPositif/main/ipaddress_isp"
-# opsional domains_isp hanya bila URL mengarah ke file teks yang kompatibel (bukan .7z):
-# export NAWALA_DOMAINS_ISP_DOWNLOAD_URL="https://..."
 ```
 
-Repo alsyundawy menyediakan `domains_isp` terutama sebagai **`domains_isp.7z`** — format beda dari unduhan resmi teks; untuk itu perlu langkah unpack terpisah atau tetap pakai mirror/resmi teks.
+**`domains_isp` dari mirror .7z** (otomatis diekstrak ke `cache/blocklist_files/domains_isp` — butuh `7zz`/`7z` di server, mis. `sudo apt install -y p7zip-full`):
+
+```bash
+export NAWALA_DOMAINS_ISP_DOWNLOAD_URL="https://raw.githubusercontent.com/alsyundawy/TrustPositif/main/domains_isp.7z"
+APP_DIR=/var/www/nawala-api2-vps PHP_BIN=/usr/bin/php ./update_sources.sh --force
+```
+
+Tanpa env, URL default tetap ke **Komdigi** resmi.
