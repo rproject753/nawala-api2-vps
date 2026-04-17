@@ -16,6 +16,11 @@ if (PHP_SAPI !== 'cli') {
   exit(1);
 }
 
+if (!function_exists('curl_init')) {
+  fwrite(STDERR, "Ekstensi PHP curl diperlukan untuk updater. Contoh AlmaLinux: sudo dnf install -y php-curl\n");
+  exit(1);
+}
+
 require_once dirname(__DIR__) . '/api/source_updater.php';
 
 $force = in_array('--force', $argv, true);

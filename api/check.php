@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
-header('Content-Type: application/json; charset=utf-8');
+if (PHP_SAPI !== 'cli') {
+  header('Content-Type: application/json; charset=utf-8');
+}
 
 function response(array $data, int $code = 200): void {
   http_response_code($code);
@@ -919,8 +921,10 @@ function http_probe_schemes(string $domain, array $schemes, int $timeoutSeconds 
   return $out;
 }
 
-// Execute main request handler only when this file is the entrypoint.
-if (realpath(__FILE__) === realpath($_SERVER['SCRIPT_FILENAME'] ?? '')) {
+// Execute main request handler only when this file is the web entrypoint.
+// Jangan jalankan dari CLI (cron/update_sources.php mem-include file ini).
+// Guard juga mencegah edge case realpath() yang gagal (mis. open_basedir) sehingga perbandingan false === false.
+if (PHP_SAPI !== 'cli' && realpath(__FILE__) === realpath($_SERVER['SCRIPT_FILENAME'] ?? '')) {
   $domainInput = $_GET['domain'] ?? $_POST['domain'] ?? '';
   $domainInput = is_string($domainInput) ? $domainInput : '';
 
